@@ -5,12 +5,6 @@
   `(with-html-output-to-string (s nil :indent t :prologue t)
      ,@body))
 
-(defclass user ()
-  ((source :reader source :initform :github :initarg :source)
-   (name :accessor name :initarg :name)
-   (access-token :accessor access-token :initarg :access-token)
-   (url :reader url :initarg :url)))
-
 (define-handler (auth/github/callback :content-type "text/plain") ((code :string))
   (let* ((raw (drakma:http-request
 	       "https://github.com/login/oauth/access_token"
@@ -38,57 +32,59 @@
     :type-expression `(group-by-id (parse-integer ,parameter :junk-allowed t))
     :type-assertion `(not (null ,parameter)))
 
-(define-handler (group) ((group-id :group))
+(define-handler (group) ((group :group))
   (with-html
     (:html
      (:head (:title "A Group - congregate"))
      (:body
-      (:h1 (str (getf group-id :name)))
+      (:h1 (str (getf group :name)))
       (:iframe
        :width 400 :height 350 :frameborder 0 :style "border: 0;"
-       :src (format nil "https://www.google.com/maps/embed/v1/place?key=~a&q=~a"
-		    +google-api-key+ (getf group-id :location)))
+       :src (group-map-url group))
       (:h2 (fmt "Recurring ~a on ~a at ~a"
-		(getf group-id :recurring)
-		(getf group-id :on)
-		(getf group-id :at)))
+		(getf group :recurring)
+		(getf group :on)
+		(getf group :at)))
       (:ul
-       (loop for (k v) on (getf group-id :links) by #'cddr
+       (loop for (k v) on (getf group :links) by #'cddr
 	  do (htm (:li (:a :href v (str k))))))
       (:h2 "Events")
       (:ul
-       (loop for e in (group-events (getf group-id :id))
-	  do (htm (:li (:a :href (format nil "/event?event-id=~a" (getf e :id))
+       (loop for e in (group-events (getf group :id))
+	  do (htm (:li (:a :href (format nil "/event?event=~a" (getf e :id))
 			   (str (getf e :name)))))))
       (:h2 "Organizers")
       (:ul
-       (loop for o in (getf group-id :organizers)
+       (loop for o in (getf group :organizers)
 	  do (htm (:li (str o)))))))))
 
 (define-http-type (:event)
     :type-expression `(get-event (parse-integer ,parameter :junk-allowed t))
     :type-assertion `(not (null ,parameter)))
 
-(define-handler (event) ((event-id :event))
+(define-handler (event) ((event :event))
   (with-html
     (:html
      (:head (:title "An Event - congregate"))
      (:body
-      (:h1 (getf event-id :name))
+      (:h1 (str (getf event :name)))
       (:iframe
        :width 400 :height 350 :frameborder 0 :style "border: 0;"
-       :src (format nil "https://www.google.com/maps/embed/v1/place?key=~a&q=~a"
-		    +google-api-key+ (getf event-id :location)))
-      (:h2 (fmt "On ~a at ~a" (getf event-id :date) (getf event-id :time)))
+       :src (event-map-url event))
+      (:h2 (fmt "On ~a at ~a" (getf event :date) (getf event :time)))
       (:h2 "Attending")
-      (:ul (loop for u in (getf event-id :interested)
+      (:ul (loop for u in (getf event :interested)
 	      do (htm (:li (str u)))))))))
 
 (define-handler (root) ()
-  (format t "SESSION: ~s~%" session)
   (with-html
     (:html
      (:head (:title "Congregate"))
      (:body
       (:h1 "Welcome to friggin' Congregate")
+      (:ul
+       (loop for g in (list-groups)
+	  do (htm
+	      (:li (:a :href (format nil "/group?group=~a" (getf g :id))
+		       (str(getf g :name)))))))
       (:p (fmt "Your session looks like: ~s" session))))))

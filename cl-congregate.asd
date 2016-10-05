@@ -1,5 +1,4 @@
 ;;;; cl-congregate.asd
-
 (asdf:defsystem #:cl-congregate
   :description "Describe cl-congregate here"
   :author "Your Name <your.name@example.com>"
@@ -9,6 +8,7 @@
 	       #:drakma
 	       #:yason
 	       #:cl-who
+	       #:fact-base
                #:split-sequence)
   :serial t
   :components ((:file "package")
