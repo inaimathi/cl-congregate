@@ -57,6 +57,7 @@
 (defun group-events (group-id)
   (fact-base:for-all
    `(and (,group-id :group nil)
+	 (?id :group ,group-id)
 	 (?id :event nil)
 	 (?id :name ?name)
 	 (?id :country ?country)
@@ -78,6 +79,7 @@
   (fact-base:multi-insert!
    *public-data*
    `((:event nil)
+     (:group (getf group :id))
      (:name ,(or name (format nil "September - ~a" (getf group :name))))
      (:country ,(getf group :country))
      (:region ,(getf group :region))
