@@ -1,9 +1,15 @@
 ;;;; cl-congregate.lisp
 (in-package #:cl-congregate)
 
-(defmacro with-html (&body body)
-  `(with-html-output-to-string (s nil :indent t :prologue t)
-     ,@body))
+(defun user-link (qualified-user)
+  (destructuring-bind (site name) (cl-ppcre:split ":" qualified-user :limit 2)
+    (let ((template (case (house::->keyword site)
+		      (:github "https:github.com/~a")
+		      (t nil))))
+      (with-html-output (*standard-output*)
+	(if template
+	    (htm (:a :href (format nil template name) (str name)))
+	    (str name))))))
 
 (define-handler (auth/github/callback :content-type "text/plain") ((code :string))
   (let* ((raw (drakma:http-request
@@ -56,7 +62,7 @@
       (:h2 "Organizers")
       (:ul
        (loop for o in (getf group :organizers)
-	  do (htm (:li (str o)))))))))
+	  do (htm (:li (user-link o)))))))))
 
 (define-http-type (:event)
     :type-expression `(get-event (parse-integer ,parameter :junk-allowed t))
@@ -86,5 +92,5 @@
        (loop for g in (list-groups)
 	  do (htm
 	      (:li (:a :href (format nil "/group?group=~a" (getf g :id))
-		       (str(getf g :name)))))))
+		       (str (getf g :name)))))))
       (:p (fmt "Your session looks like: ~s" session))))))

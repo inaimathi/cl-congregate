@@ -1,17 +1,13 @@
 ;;;; model.lisp
 (in-package #:cl-congregate)
 
-(defclass user ()
-  ((source :reader source :initform :github :initarg :source)
-   (name :accessor name :initarg :name)
-   (access-token :accessor access-token :initarg :access-token)
-   (url :reader url :initarg :url)))
-
 (defparameter *public-data*
   (fact-base:base!
    (merge-pathnames "public-data.base" (user-homedir-pathname))
    :in-memory? t))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Groups
 (defun list-groups ()
   (fact-base:for-all
    (and (?id :group nil)
@@ -76,9 +72,8 @@
 	     :city ?city
 	     :location ?location)))
 
-(defun next-event-date (group)
-  "Monday, September 5th")
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Events
 (defun create-event! (group &key name location time date)
   (fact-base:multi-insert!
    *public-data*
@@ -115,6 +110,16 @@
 	   :links links)
      event)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Users
+(defclass user ()
+  ((source :reader source :initform :github :initarg :source)
+   (name :accessor name :initarg :name)
+   (access-token :accessor access-token :initarg :access-token)
+   (url :reader url :initarg :url)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Utility
 (defun map-url (country region city location)
   (format
    nil "https://www.google.com/maps/embed/v1/place?key=~a&q=~a,~a,~a,~a"
@@ -125,6 +130,9 @@
 
 (defun event-map-url (event)
   (map-url (getf event :country) (getf event :region) (getf event :city) (getf event :location)))
+
+(defun next-event-date (group)
+  "Monday, September 5th")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dummy data
 

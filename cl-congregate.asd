@@ -9,9 +9,11 @@
 	       #:yason
 	       #:cl-who
 	       #:fact-base
-               #:split-sequence)
+               #:split-sequence
+	       #:cl-ppcre)
   :serial t
   :components ((:file "package")
+	       (:file "util")
 	       (:file "secrets")
 	       (:file "model")
                (:file "cl-congregate")))
