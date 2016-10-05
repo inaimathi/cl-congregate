@@ -12,6 +12,7 @@
 	    (str name))))))
 
 (define-handler (auth/github/callback :content-type "text/plain") ((code :string))
+  (format t "GOT CALLBACK REQUEST with (~a)...~%" code)
   (let* ((raw (drakma:http-request
 	       "https://github.com/login/oauth/access_token"
 	       :method :post
@@ -20,23 +21,21 @@
 			    (cons "client_secret" +github-api-secret+)
 			    (cons "code" code))))
 	 (params (house::parse-params (map 'string #'code-char raw))))
+    (format t "GOT PAST ACCESS REQUEST...~%")
     (aif (cdr (assoc :access_token params))
 	 (let* ((raw (drakma:http-request
 		      "https://api.github.com/user"
 		      :parameters (list (cons "access_token" it))))
-		(u (yason:parse (map string #'code-char raw) :object-key-fn #'house::->keyword)))
+		(u (yason:parse (map 'string #'code-char raw) :object-key-fn #'house::->keyword)))
+	   (format t "GOT A USER BACK FROM API...~%")
 	   (setf (lookup :user session)
 		 (make-instance
 		  'user
 		  :source :github :access-token it
-		  :name (gethash "login" u) :url (gethash "html_url" u)))
+		  :name (gethash :login u) :url (gethash :html_url u)))
 	   (format t "USER; ~a" (lookup :user session)))
 	 (format t "NO ACCESS TOKEN GRANTED :(~%")))
   "ACK")
-
-(define-http-type (:group)
-    :type-expression `(group-by-id (parse-integer ,parameter :junk-allowed t))
-    :type-assertion `(not (null ,parameter)))
 
 (define-handler (group) ((group :group))
   (with-html
@@ -64,10 +63,6 @@
        (loop for o in (getf group :organizers)
 	  do (htm (:li (user-link o)))))))))
 
-(define-http-type (:event)
-    :type-expression `(get-event (parse-integer ,parameter :junk-allowed t))
-    :type-assertion `(not (null ,parameter)))
-
 (define-handler (event) ((event :event))
   (with-html
     (:html
@@ -81,6 +76,13 @@
       (:h2 "Attending")
       (:ul (loop for u in (getf event :interested)
 	      do (htm (:li (str u)))))))))
+
+(define-handler (event/interested) ((event :event))
+  (if (lookup :user session)
+      (progn
+	(register-interest (lookup :user session) event)
+	(redirect! (format nil "/event?event=~a" (getf event :id))))
+      (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8")))
 
 (define-handler (root) ()
   (with-html

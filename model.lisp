@@ -120,6 +120,13 @@
    (access-token :accessor access-token :initarg :access-token)
    (url :reader url :initarg :url)))
 
+(defmethod register-interest ((u user) event)
+  (fact-base:insert-if-unique!
+   *public-data*
+   (list (getf event :id)
+	 :interested
+	 (format nil "~(~a~):~a" (source u) (name u)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Utility
 (defun map-url (country region city location)
