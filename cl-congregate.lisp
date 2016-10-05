@@ -8,11 +8,10 @@
 		      (t nil))))
       (with-html-output (*standard-output*)
 	(if template
-	    (htm (:a :href (format nil template name) (str name)))
+	    (htm (:a :href (format nil template name) :target "_BLANK" (str name)))
 	    (str name))))))
 
 (define-handler (auth/github/callback :content-type "text/plain") ((code :string))
-  (format t "GOT CALLBACK REQUEST with (~a)...~%" code)
   (let* ((raw (drakma:http-request
 	       "https://github.com/login/oauth/access_token"
 	       :method :post
@@ -21,21 +20,20 @@
 			    (cons "client_secret" +github-api-secret+)
 			    (cons "code" code))))
 	 (params (house::parse-params (map 'string #'code-char raw))))
-    (format t "GOT PAST ACCESS REQUEST...~%")
     (aif (cdr (assoc :access_token params))
 	 (let* ((raw (drakma:http-request
 		      "https://api.github.com/user"
 		      :parameters (list (cons "access_token" it))))
 		(u (yason:parse (map 'string #'code-char raw) :object-key-fn #'house::->keyword)))
-	   (format t "GOT A USER BACK FROM API...~%")
 	   (setf (lookup :user session)
 		 (make-instance
 		  'user
 		  :source :github :access-token it
 		  :name (gethash :login u) :url (gethash :html_url u)))
-	   (format t "USER; ~a" (lookup :user session)))
-	 (format t "NO ACCESS TOKEN GRANTED :(~%")))
-  "ACK")
+	   (let ((dest (lookup :destination session)))
+	     (setf (lookup :destination session) nil)
+	     (redirect! (or dest "/"))))
+	 "AUTHENTICATION ERROR")))
 
 (define-handler (group) ((group :group))
   (with-html
@@ -73,16 +71,20 @@
        :width 400 :height 350 :frameborder 0 :style "border: 0;"
        :src (event-map-url event))
       (:h2 (fmt "On ~a at ~a" (getf event :date) (getf event :time)))
+      (:a :href (format nil "/event/interested?event=~a" (getf event :id))
+	  "I'll Be There!")
       (:h2 "Attending")
       (:ul (loop for u in (getf event :interested)
-	      do (htm (:li (str u)))))))))
+	      do (htm (:li (user-link u)))))))))
 
 (define-handler (event/interested) ((event :event))
-  (if (lookup :user session)
-      (progn
-	(register-interest (lookup :user session) event)
-	(redirect! (format nil "/event?event=~a" (getf event :id))))
-      (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8")))
+  (cond ((lookup :user session)
+	 (register-interest (lookup :user session) event)
+	 (redirect! (format nil "/event?event=~a" (getf event :id))))
+	(t
+	 (setf (lookup :destination session)
+	       (format nil "/event/interested?event=~a" (getf event :id)))
+	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
 
 (define-handler (root) ()
   (with-html
