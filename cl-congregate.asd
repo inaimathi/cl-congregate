@@ -16,4 +16,5 @@
 	       (:file "util")
 	       (:file "secrets")
 	       (:file "model")
+	       (:file "cosmetics")
                (:file "cl-congregate")))

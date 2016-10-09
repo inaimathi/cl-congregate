@@ -79,7 +79,7 @@
   (fact-base:multi-insert!
    *public-data*
    `((:event nil)
-     (:group (getf group :id))
+     (:group ,(getf group :id))
      (:name ,(or name (format nil "September - ~a" (getf group :name))))
      (:country ,(getf group :country))
      (:region ,(getf group :region))
@@ -112,6 +112,12 @@
 	   :links links)
      event)))
 
+(defmethod take-attendance (users event)
+  (let ((id (getf event :id)))
+    (dolist (u users)
+      (fact-base:insert-if-unique! *public-data* (list id :attended u)))
+    (fact-base:write! *public-data*)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Users
 (defclass user ()
@@ -120,12 +126,14 @@
    (access-token :accessor access-token :initarg :access-token)
    (url :reader url :initarg :url)))
 
+(defmethod user-id ((u user))
+  (format nil "~(~a~):~a" (source u) (name u)))
+
 (defmethod register-interest ((u user) event)
   (fact-base:insert-if-unique!
    *public-data*
-   (list (getf event :id)
-	 :interested
-	 (format nil "~(~a~):~a" (source u) (name u)))))
+   (list (getf event :id) :interested (user-id u)))
+  (fact-base:write! *public-data*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Utility
