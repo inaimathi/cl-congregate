@@ -25,13 +25,13 @@
 	     :city ?city
 	     :location ?location)))
 
-(defun create-group! (name description &key organizers location recurring on at links)
-  (assert (and organizers location recurring on at) nil "Missing some mandatory keyword inputs")
+(defun create-group! (name description &key (country "CAN") (region "Ontario") (city "Toronto") organizers location recurring on at to links)
+  (assert (and organizers location recurring on at to) nil "Missing some mandatory keyword inputs")
   (let ((items `((:group nil) (:name ,name)
 		 (:description ,description)
-		 (:country "CAN") (:region "Ontario") (:city "Toronto")
+		 (:country ,country) (:region ,region) (:city ,city)
 		 (:location ,location)
-		 (:recurring ,recurring) (:on ,on) (:at ,at)
+		 (:recurring ,recurring) (:on ,on) (:at ,at) (:to ,to)
 		 ,@(loop for name in organizers
 		      collect (list :organizer name))
 		 ,@(loop for name/url-pair in links
@@ -75,20 +75,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Events
-(defun create-event! (group &key name location time date)
-  (fact-base:multi-insert!
-   *public-data*
-   `((:event nil)
-     (:group ,(getf group :id))
-     (:name ,(or name (format nil "September - ~a" (getf group :name))))
-     (:country ,(getf group :country))
-     (:region ,(getf group :region))
-     (:city ,(getf group :city))
-     (:location ,(or location (getf group :location)))
-     (:time ,(or time (getf group :at)))
-     (:date ,(or date (next-event-date group)))))
-  (fact-base:write! *public-data*)
-  nil)
+(defun create-event! (group &key name location date at to)
+  (let* ((d (or date (next-event-date group)))
+	 (new-id
+	  (fact-base:multi-insert!
+	   *public-data*
+	   `((:event nil)
+	     (:group ,(getf group :id))
+	     (:name ,(or name (default-event-name group d)))
+	     (:country ,(getf group :country))
+	     (:region ,(getf group :region))
+	     (:city ,(getf group :city))
+	     (:location ,(or location (getf group :location)))
+	     (:date ,d)
+	     (:at ,(or at (getf group :at))) (:to ,(or to (getf group :to)))))))
+    (fact-base:write! *public-data*)
+    new-id))
 
 (defun get-event (event-id)
   (let ((ints nil)
@@ -129,6 +131,12 @@
 (defmethod user-id ((u user))
   (format nil "~(~a~):~a" (source u) (name u)))
 
+(defmethod organizer-of? ((u null) group) nil)
+(defmethod organizer-of? ((u user) thing)
+  (fact-base:for-all
+   `(,(or(getf thing :group) (getf thing :id)) (getf group :id) :organizer ,(user-id u))
+   :in *public-data* :do (return t)))
+
 (defmethod register-interest ((u user) event)
   (fact-base:insert-if-unique!
    *public-data*
@@ -148,27 +156,66 @@
 (defun event-map-url (event)
   (map-url (getf event :country) (getf event :region) (getf event :city) (getf event :location)))
 
+(defun default-event-name (group date)
+  (format
+   nil "~a - ~a"
+   (local-time:format-timestring
+    nil date
+    :format (case (house::->keyword (getf group :recurring))
+	      (:yearly '(:year))
+	      (:monthly '(:long-month))
+	      (:weekly '(:long-month ", " :ordinal-day))))
+   (getf group :name)))
+
 (defun next-event-date (group)
-  "Monday, September 5th")
+  (let ((now (local-time:now)))
+    (case (house::->keyword (getf group :recurring))
+      (:yearly now)
+      (:monthly now)
+      (:weekly
+       (let ((next-day (getf
+			'(:sunday 0 :monday 1 :tuesday 2 :wednesday 3 :thursday 4 :friday 5 :saturday 6)
+			(house::->keyword (getf group :on))))
+	     (today (local-time:timestamp-day-of-week now)))
+	 (if (null next-day)
+	     now
+	     (local-time:timestamp+
+	      now
+	      (if (> next-day today)
+		  (- next-day today)
+		  (- 7 (- today next-day)))
+	      :day)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dummy data
 
-;; (create-group!
-;;  "Toronto Code Retreat"
-;;  "A place for fellow travellers on a path to higher understanding to practice the craft of writing software."
-;;  :organizers (list "github:inaimathi" "github:dxnn")
-;;  :location "Lighthouse Labs"
-;;  :recurring "monthly" :on "the last wednesday" :at "6:30pm"
-;;  :links '(("github" "https://github.com/CodeRetreatTO")))
+;; (progn
+;;   (create-group!
+;;    "Toronto Code Retreat"
+;;    "A place for fellow travellers on a path to higher understanding to practice the craft of writing software."
+;;    :organizers (list "github:inaimathi" "github:dxnn")
+;;    :location "Lighthouse Labs"
+;;    :recurring "monthly" :on "the last wednesday" :at "6:30pm" :to "8:30pm"
+;;    :links '(("github" "https://github.com/CodeRetreatTO")))
 
-;; (create-group!
-;;  "Toronto Lisp Users Group"
-;;  "A place to discuss things that Common Lispers in Toronto may find interesting"
-;;  :organizers (list "github:guitarvydas" "github:inaimathi")
-;;  :location "Bento Miso"
-;;  :recurring "monthly" :on "the first tuesday" :at "6:30pm"
-;;  :links '(("wiki" "http://lispwiki.inaimathi.ca/")
-;; 	  ("group" "https://groups.google.com/forum/?hl=en&fromgroups#!forum/toronto-lisp-users-group")
-;; 	  ("github" "https://github.com/LispTO")))
+;;   (create-group!
+;;    "Toronto Lisp Users Group"
+;;    "A place to discuss things that Common Lispers in Toronto may find interesting"
+;;    :organizers (list "github:guitarvydas" "github:inaimathi")
+;;    :location "Bento Miso"
+;;    :recurring "monthly" :on "the first tuesday" :at "6:30pm" :to "8:30pm"
+;;    :links '(("wiki" "http://lispwiki.inaimathi.ca/")
+;; 	    ("group" "https://groups.google.com/forum/?hl=en&fromgroups#!forum/toronto-lisp-users-group")
+;; 	    ("github" "https://github.com/LispTO")))
 
-;; (create-event! (group-by-id 0))
+;;   (create-group!
+;;    "Comp Sci Cabal"
+;;    "We read computer science books for fun. Then we talk about it every friday night."
+;;    :organizers (list "github:dxnn" "github:inaimathi")
+;;    :location "Bento Miso"
+;;    :recurring "weekly" :on "Friday" :at "6:30pm" :to "9:30pm"
+;;    :links '(("site" "http://cscabal.com")
+;; 	    ("wiki" "https://github.com/CompSciCabal/SMRTYPRTY/wiki")
+;; 	    ("github" "https://github.com/CompSciCabal")))
+
+;;   (create-event! (group-by-id 0))
+;;   (create-event! (group-by-id 2)))

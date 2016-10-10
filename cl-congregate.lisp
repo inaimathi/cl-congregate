@@ -2,54 +2,87 @@
 (in-package #:cl-congregate)
 
 (define-handler (root) ()
-  (page (:title "Welcome")
+  (page (:title "congregate.ca")
     (:ul
      (loop for g in (list-groups)
 	do (htm
 	    (:li (:a :href (format nil "/group?group=~a" (getf g :id))
-		     (str (getf g :name)))))))
-    (:p (fmt "Your session looks like: ~s" session))))
+		     (str (getf g :name)))))))))
+
+;; TODO - create new group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Groups
 (define-handler (group) ((group :group))
   (page (:title (getf group :name))
+    (:h2 (fmt "Recurring ~a on ~a at ~a to ~a"
+	      (getf group :recurring) (getf group :on)
+	      (getf group :at) (getf group :to)))
     (:iframe :class "map" :src (group-map-url group))
-    (:h2 (fmt "Recurring ~a on ~a at ~a"
-	      (getf group :recurring)
-	      (getf group :on)
-	      (getf group :at)))
-    (:ul
-     (loop for (k v) on (getf group :links) by #'cddr
-	do (htm (:li (:a :href v (str k))))))
-    (:h2 "Events")
-    (:ul
-     (loop for e in (group-events (getf group :id))
-	do (htm (:li (:a :href (format nil "/event?event=~a" (getf e :id))
-			 (str (getf e :name)))))))
-    (:h2 "Organizers")
-    (:ul
-     (loop for o in (getf group :organizers)
-	do (htm (:li (user-link o)))))))
+    (when (organizer-of? (lookup :user session) group)
+      (htm (:a :href (format nil "/group/create-event-form?group=~a" (getf group :id)) "Create Event")))
+    (:div
+     :class "column"
+     (:h3 "Resources")
+     (:ul
+      (loop for (k v) on (getf group :links) by #'cddr
+	 do (htm (:li (:a :href v (str k)))))))
+    (:div
+     :class "column"
+     (:h3 "Upcoming Events")
+     (:ul
+      (loop for e in (group-events (getf group :id))
+	 do (htm (:li (:a :href (format nil "/event?event=~a" (getf e :id))
+			  (str (getf e :name))))))))
+    (:div
+     :class "column"
+     (:h3 "Organizers")
+     (:ul
+      (loop for o in (getf group :organizers)
+	 do (htm (:li (user-link o))))))
+    (:hr :class "clear")
+    (:p (str (getf group :description)))))
+;; TODO - group should allow editing in-line for administrators
 
-;; TODO - create new event with some properties for this group
+(define-handler (group/create-event-form) ((group :group))
+  (page (:title (format nil "New Event for ~a" (getf group :name)))
+    (:form
+     (:input :type "text" :name "name")
+     (:input :type "text" :name "location")
+     (:input :type "text" :name "datetime")
+     (:input :type "submit" :value "Create"))))
+
+(define-handler (group/create-event) ((group :group) (name :string) (location :string) (date :string) (at :integer) (to :integer))
+  (cond ((organizer-of? (lookup :user session) group)
+	 (let ((event (create-event! group :name name :location location :date date)))
+	   (redirect! (format nil "/event?event=~a" (getf event :id)))))
+	(t
+	 (setf (lookup :destination session)
+	       (format
+		nil "/group/create-event?group=~a&name=~a&location=~a&datetime=~a"
+		(getf group :id) name location datetime)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Events
 (define-handler (event) ((event :event))
   (page (:title (getf event :name))
     (:iframe :class "map" :src (event-map-url event))
-    (:h2 (fmt "On ~a at ~a" (getf event :date) (getf event :time)))
+    (:h2 (fmt "On ~a at ~a to ~a"
+	      (local-time:format-timestring
+	       nil (getf event :date)
+	       :format '(:long-weekday " the " :ordinal-day " of " :short-month ", " :year))
+	      (getf event :at) (getf event :to)))
     (:a :href (format nil "/event/interested?event=~a" (getf event :id))
 	"I'll Be There!")
     (:h2 "Attending")
     (:ul (loop for u in (getf event :interested)
 	    do (htm (:li (user-link u)))))))
+;; TODO - events should allow editing in-line for group administrators
 
 ;; TODO - delete event
 
 (define-handler (event/take-attendance) ((event :event) (attendees :list-of-string))
-  (cond ((lookup :user session)
+  (cond ((organizer-of? (lookup :user session) event)
 	 (take-attendance attendees event)
 	 (redirect! (format nil "/event?event=~a" (getf event :id))))
 	(t

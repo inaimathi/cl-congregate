@@ -12,7 +12,9 @@
 	  (:body
 	   (:div :class "header" (:h1 (str ,tl)))
 	   (:div :class "content" ,@contents)
-	   (:div :class "footer")))))))
+	   (:div
+	    :class "footer"
+	    (:a :href "/" "Home"))))))))
 
 (defvar css-main-color "#369")
 (defvar white "#fff")
@@ -21,8 +23,16 @@
 (define-handler (style/default.css :content-type "text/css") ()
   (css `(("body" ,@tight :background-color ,css-main-color)
 	 (.header :padding "5% 5% 1% 5%")
+	 (.footer :padding "1% 5% 5% 5%")
+	 (".footer a" :font-weight bolder :color ,white)
+	 (".footer a:hover" :font-weight bolder :color \#ddd)
+
+	 (.column :width 32% :float left)
+	 (.clear :clear both)
+	 (hr :border-color ,css-main-color)
 
 	 (.content :background-color ,white :padding "1% 5%")
 	 (.map :width 100% :height 300px :border 0px)
 	 (h1 :color ,white ,@tight)
+	 (h2 :margin-top 0px :padding-top 0px)
 	 ("h2, h3, h4" :color ,css-main-color))))
