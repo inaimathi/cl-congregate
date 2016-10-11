@@ -8,11 +8,12 @@
 	       #:house #:drakma #:fact-base
 	       #:yason #:cl-who #:cl-css #:parenscript #:local-time
 
-               #:split-sequence #:cl-ppcre)
+               #:optima #:cl-ppcre #:split-sequence)
   :serial t
   :components ((:file "package")
 	       (:file "util")
 	       (:file "secrets")
+	       (:file "recurrence")
 	       (:file "model")
 	       (:file "cosmetics")
                (:file "cl-congregate")))

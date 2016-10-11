@@ -14,7 +14,8 @@
 	   (:div :class "content" ,@contents)
 	   (:div
 	    :class "footer"
-	    (:a :href "/" "Home"))))))))
+	    (:a :href "/" "Index")
+	    (:a :href "/me" "My Profile"))))))))
 
 (defvar css-main-color "#369")
 (defvar white "#fff")

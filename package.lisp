@@ -1,7 +1,7 @@
 ;;;; package.lisp
 
 (defpackage #:cl-congregate
-  (:use #:cl #:house #:anaphora #:cl-who #:cl-css)
+  (:use #:cl #:house #:anaphora #:cl-who #:cl-css #:optima)
   (:import-from #:alexandria :with-gensyms))
 
 (in-package :cl-congregate)

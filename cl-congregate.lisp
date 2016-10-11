@@ -19,8 +19,8 @@
 	      (getf group :recurring) (getf group :on)
 	      (getf group :at) (getf group :to)))
     (:iframe :class "map" :src (group-map-url group))
-    (when (organizer-of? (lookup :user session) group)
-      (htm (:a :href (format nil "/group/create-event-form?group=~a" (getf group :id)) "Create Event")))
+    ;; (when (organizer-of? (lookup :user session) group)
+    ;;   (htm (:a :href (format nil "/group/create-event-form?group=~a" (getf group :id)) "Create Event")))
     (:div
      :class "column"
      (:h3 "Resources")
@@ -69,7 +69,7 @@
     (:iframe :class "map" :src (event-map-url event))
     (:h2 (fmt "On ~a at ~a to ~a"
 	      (local-time:format-timestring
-	       nil (getf event :date)
+	       nil (event-date event)
 	       :format '(:long-weekday " the " :ordinal-day " of " :short-month ", " :year))
 	      (getf event :at) (getf event :to)))
     (:a :href (format nil "/event/interested?event=~a" (getf event :id))
@@ -97,6 +97,16 @@
 	(t
 	 (setf (lookup :destination session)
 	       (format nil "/event/interested?event=~a" (getf event :id)))
+	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; User
+(define-handler (me) ()
+  (cond ((lookup :user session)
+	 (page (:title "My Profile")
+	   (:h2 "Nothing here yet...")))
+	(t
+	 (setf (lookup :destination session) "/me")
 	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

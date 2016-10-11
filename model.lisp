@@ -59,6 +59,7 @@
    `(and (,group-id :group nil)
 	 (?id :group ,group-id)
 	 (?id :event nil)
+	 (?id :date ?date)
 	 (?id :name ?name)
 	 (?id :country ?country)
 	 (?id :region ?region)
@@ -68,6 +69,7 @@
    :collect (list
 	     :id ?id
 	     :name ?name
+	     :date ?date
 	     :country ?country
 	     :region ?region
 	     :city ?city
@@ -114,6 +116,9 @@
 	   :links links)
      event)))
 
+(defun event-date (event)
+  (local-time:parse-timestring (getf event :date)))
+
 (defmethod take-attendance (users event)
   (let ((id (getf event :id)))
     (dolist (u users)
@@ -134,7 +139,7 @@
 (defmethod organizer-of? ((u null) group) nil)
 (defmethod organizer-of? ((u user) thing)
   (fact-base:for-all
-   `(,(or(getf thing :group) (getf thing :id)) (getf group :id) :organizer ,(user-id u))
+   `(,(or (getf thing :group) (getf thing :id)) :organizer ,(user-id u))
    :in *public-data* :do (return t)))
 
 (defmethod register-interest ((u user) event)
@@ -160,31 +165,12 @@
   (format
    nil "~a - ~a"
    (local-time:format-timestring
-    nil date
+    nil (local-time:parse-timestring date)
     :format (case (house::->keyword (getf group :recurring))
 	      (:yearly '(:year))
 	      (:monthly '(:long-month))
-	      (:weekly '(:long-month ", " :ordinal-day))))
+	      (:weekly '(:long-month " " :ordinal-day))))
    (getf group :name)))
-
-(defun next-event-date (group)
-  (let ((now (local-time:now)))
-    (case (house::->keyword (getf group :recurring))
-      (:yearly now)
-      (:monthly now)
-      (:weekly
-       (let ((next-day (getf
-			'(:sunday 0 :monday 1 :tuesday 2 :wednesday 3 :thursday 4 :friday 5 :saturday 6)
-			(house::->keyword (getf group :on))))
-	     (today (local-time:timestamp-day-of-week now)))
-	 (if (null next-day)
-	     now
-	     (local-time:timestamp+
-	      now
-	      (if (> next-day today)
-		  (- next-day today)
-		  (- 7 (- today next-day)))
-	      :day)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dummy data
 
@@ -218,4 +204,5 @@
 ;; 	    ("github" "https://github.com/CompSciCabal")))
 
 ;;   (create-event! (group-by-id 0))
+;;   (create-event! (group-by-id 1))
 ;;   (create-event! (group-by-id 2)))
