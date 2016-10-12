@@ -75,6 +75,15 @@
 	     :city ?city
 	     :location ?location)))
 
+(defun group-has-event-at? (group-id date)
+  (fact-base:for-all
+   `(and (,group-id :group nil)
+	 (?id :group ,group-id)
+	 (?id :event nil)
+	 (?id :date ,date))
+   :in *public-data*
+   :do (return t)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Events
 (defun create-event! (group &key name location date at to)
@@ -171,6 +180,17 @@
 	      (:monthly '(:long-month))
 	      (:weekly '(:long-month " " :ordinal-day))))
    (getf group :name)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; Periodic updates
+(defun update-state! ()
+  (fact-base:for-all
+   (?id :group nil)
+   :in *public-data*
+   :do (let ((g (group-by-id ?id)))
+	 (unless (group-has-event-at? ?id (next-event-date g))
+	   (create-event! g)
+	   (format t "Created for group-~a...~%" ?id)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dummy data
 

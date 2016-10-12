@@ -134,3 +134,16 @@
 	     (setf (lookup :destination session) nil)
 	     (redirect! (or dest "/"))))
 	 "AUTHENTICATION ERROR")))
+
+(defun start (port &key (host usocket:*wildcard-host*))
+  (let ((cron-thread
+	 (bt:make-thread
+	  (lambda ()
+	    (loop
+	       do (sleep (* 60 60))
+	       do (format t "Doing a state update...~%")
+	       do (update-state!))))))
+    (format t "Listening on ~a...~%" port)
+    (unwind-protect
+	 (house:start 8000 host)
+      (bt:destroy-thread cron-thread))))

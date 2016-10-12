@@ -20,8 +20,8 @@
 Returns a list of timestamps in those months that specify
 the given weekday."
   (let ((now (local-time:adjust-timestamp
-		 (local-time:now)
-	       (offset :day (- (- (local-time:timestamp-day (local-time:now)) 1)))))
+		 (local-time:today)
+	       (offset :day (- (- (local-time:timestamp-day (local-time:today)) 1)))))
 	(wday-ix (weekday->index weekday)))
     (loop repeat count-months for i from 0
        collect (let ((m (local-time:timestamp+ now i :month)))
@@ -36,7 +36,7 @@ the given weekday."
   (local-time:timestamp> timestamp (local-time:now)))
 
 (defun next-event-date (group)
-  (let ((now (local-time:now)))
+  (let ((now (local-time:today)))
     (local-time:format-timestring
      nil
      (match (group-recurrence group)
