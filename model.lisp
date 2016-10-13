@@ -54,11 +54,15 @@
 	   (t (push ?v group) (push ?k group))))
     (cons :id (cons group-id (cons :organizers (cons orgs (cons :links (cons links group))))))))
 
-(defun group-events (group-id)
+(defun group-events (group-id &key in)
+  (assert (or (null in) (eq in :past) (eq in :future)) nil ":in must be one of nil, :future or :past")
   (fact-base:for-all
    `(and (,group-id :group nil)
 	 (?id :group ,group-id)
 	 (?id :event nil)
+	 ,@(case in
+		 (:past '((?id :passed nil)))
+		 (:future '((not (?id :passed nil)))))
 	 (?id :date ?date)
 	 (?id :name ?name)
 	 (?id :country ?country)
@@ -183,14 +187,35 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Periodic updates
-(defun update-state! ()
+(defun create-new-events! ()
+  "Creates new events for all groups on file according to their recurrence settings.
+Intentionally doesn't check for :deleted events. Because:
+1. If there are no events there at all, we create a new one
+2. If there's a deleted event at the appointed time, that means we've created one
+   in the past and some organizer deleted it. Thus we should not re-create it."
   (fact-base:for-all
    (?id :group nil)
    :in *public-data*
    :do (let ((g (group-by-id ?id)))
 	 (unless (group-has-event-at? ?id (next-event-date g))
-	   (create-event! g)
-	   (format t "Created for group-~a...~%" ?id)))))
+	   (create-event! g)))))
+
+(defun mark-passed-events! ()
+  "Goes through all events not marked :passed, and marks them as such if their date is in the past."
+  (fact-base:for-all
+   (and (?id :event nil)
+	(not (?id :passed nil))
+	(?id :date ?date))
+   :in *public-data*
+   :do (when (local-time:timestamp>
+	      (local-time:today)
+	      (local-time:parse-timestring ?date))
+	 (fact-base:insert! *public-data* (list ?id :passed nil)))))
+
+(defun update-state! ()
+  "Makes time-based updates to the *public-data* fact base"
+  (create-new-events!)
+  (mark-passed-events!))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Dummy data
 
