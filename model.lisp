@@ -7,6 +7,33 @@
    :in-memory? t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Custom subdomains
+(defun set-custom-subdomain! (group subdomain)
+  (unless (subdomain-taken? subdomain)
+    (fact-base:insert!
+     *public-data*
+     `(,(getf group :id) :subdomain ,subdomain))
+    (fact-base:write! *public-data*)
+    t))
+
+(defun subdomain-taken? (subdomain)
+  (first
+   (fact-base:for-all
+    `(?id :subdomain ,subdomain)
+    :in *public-data* :collect ?id)))
+
+(defun group-by-host (host)
+  (group-by-subdomain (first (split-sequence:split-sequence #\. host))))
+
+(defun group-by-subdomain (subdomain)
+  (aif (first
+	(fact-base:for-all
+	 `(and (?id :group nil) (?id :subdomain ,subdomain))
+	 :in *public-data*
+	 :collect ?id))
+       (group-by-id it)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Groups
 (defun list-groups ()
   (fact-base:for-all
@@ -227,6 +254,7 @@ Intentionally doesn't check for :deleted events. Because:
 ;;    :location "Lighthouse Labs"
 ;;    :recurring "monthly" :on "the last wednesday" :at "6:30pm" :to "8:30pm"
 ;;    :links '(("github" "https://github.com/CodeRetreatTO")))
+;;   (set-custom-subdomain! (group-by-id 0) "code-retreat")
 
 ;;   (create-group!
 ;;    "Toronto Lisp Users Group"

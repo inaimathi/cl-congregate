@@ -2,12 +2,14 @@
 (in-package #:cl-congregate)
 
 (define-handler (root) ()
-  (page (:title "congregate.ca")
-    (:ul
-     (loop for g in (list-groups)
-	do (htm
-	    (:li (:a :href (format nil "/group?group=~a" (getf g :id))
-		     (str (getf g :name)))))))))
+  (aif (group-by-host (cdr (assoc :host (headers request))))
+       (redirect! (format nil "/group?group=~a" (getf it :id)) :permanent? t)
+       (page (:title "congregate.ca")
+	 (:ul
+	  (loop for g in (list-groups)
+	     do (htm
+		 (:li (:a :href (format nil "/group?group=~a" (getf g :id))
+			  (str (getf g :name))))))))))
 
 ;; TODO - create new group
 
