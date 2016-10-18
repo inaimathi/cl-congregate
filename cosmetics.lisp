@@ -16,7 +16,7 @@
 	    :class "footer"
 	    (:ul
 	     :class "footer-menu"
-	     (:li (:a :href "/" "Index"))
+	     (:li (:a :href "/index" "Index"))
 	     (:li (:a :href "/me" "My Profile"))))))))))
 
 (defvar css-main-color "#369")
