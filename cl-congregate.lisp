@@ -28,7 +28,7 @@
       (htm (:div
 	    :class "admin"
 	    (:h3 "Admin Options")
-	    (:ul
+	    (:ul :class "menu"
 	     (:li (:a :href (format nil "/group/create-event-form?group=~a" (getf group :id)) "[Create Event]"))))))
     (:div
      :class "column"
@@ -98,7 +98,7 @@
 	      (getf event :at) (getf event :to)))
     (:div
      :class "controls"
-     (:ul
+     (:ul :class "menu"
       (:li (:a :href (format nil "/event/interested?event=~a" (getf event :id)) "[I'll Be There!]"))
       (:li (:a :href (format nil "/group?group=~a" (getf event :group)) "[Back to Group]"))
       (when (organizer-of? (lookup :user session) event)

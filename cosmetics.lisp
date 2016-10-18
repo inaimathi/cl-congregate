@@ -15,7 +15,7 @@
 	   (:div
 	    :class "footer"
 	    (:ul
-	     :class "footer-menu"
+	     :class "menu"
 	     (:li (:a :href "/index" "Index"))
 	     (:li (:a :href "/me" "My Profile"))))))))))
 
@@ -29,6 +29,9 @@
 	 (.footer :padding "1% 5% 5% 5%")
 	 (".footer a" :font-weight bolder :color ,white)
 	 (".footer a:hover" :font-weight bolder :color \#ddd)
+
+	 ("ul.menu" :list-style-type none :margin 0 :padding 0 :margin-bottom 20px)
+	 ("ul.menu li" :display inline :margin-right 15px)
 
 	 (.column :width 32% :float left)
 	 (.clear :clear both)
