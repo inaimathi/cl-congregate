@@ -159,7 +159,7 @@
     new-id))
 
 (defmethod delete-event! (event-id (user user))
-  (loop for f in `((,event-id :deleted nil) (,event-id :deleted-by ,user))
+  (loop for f in `((,event-id :deleted nil) (,event-id :deleted-by ,(user-id user)))
      do (fact-base:insert! *public-data* f)))
 
 (defun get-event (event-id)

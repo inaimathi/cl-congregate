@@ -5,7 +5,7 @@
   (:shadow #:start)
   (:import-from #:alexandria :with-gensyms)
 
-  (:export :start))
+  (:export :start! :stop!))
 
 (in-package :cl-congregate)
 
