@@ -34,6 +34,29 @@
        (group-by-id it)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Users
+(defclass user ()
+  ((source :reader source :initform :github :initarg :source)
+   (name :accessor name :initarg :name)
+   (access-token :accessor access-token :initarg :access-token)
+   (url :reader url :initarg :url)))
+
+(defmethod user-id ((u user))
+  (format nil "~(~a~):~a" (source u) (name u)))
+
+(defmethod organizer-of? ((u null) group) nil)
+(defmethod organizer-of? ((u user) thing)
+  (fact-base:for-all
+   `(,(or (getf thing :group) (getf thing :id)) :organizer ,(user-id u))
+   :in *public-data* :do (return t)))
+
+(defmethod register-interest ((u user) event)
+  (fact-base:insert-if-unique!
+   *public-data*
+   (list (getf event :id) :interested (user-id u)))
+  (fact-base:write! *public-data*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Groups
 (defun list-groups ()
   (fact-base:for-all
@@ -81,12 +104,13 @@
 	   (t (push ?v group) (push ?k group))))
     (cons :id (cons group-id (cons :organizers (cons orgs (cons :links (cons links group))))))))
 
-(defun group-events (group-id &key in)
+(defun group-events (group-id &key in show-deleted?)
   (assert (or (null in) (eq in :past) (eq in :future)) nil ":in must be one of nil, :future or :past")
   (fact-base:for-all
    `(and (,group-id :group nil)
 	 (?id :group ,group-id)
 	 (?id :event nil)
+	 ,@(unless show-deleted? `((not (?id :deleted nil))))
 	 ,@(case in
 		 (:past '((?id :passed nil)))
 		 (:future '((not (?id :passed nil)))))
@@ -134,6 +158,10 @@
     (fact-base:write! *public-data*)
     new-id))
 
+(defmethod delete-event! (event-id (user user))
+  (loop for f in `((,event-id :deleted nil) (,event-id :deleted-by ,user))
+     do (fact-base:insert! *public-data* f)))
+
 (defun get-event (event-id)
   (let ((ints nil)
 	(atts nil)
@@ -164,29 +192,6 @@
     (dolist (u users)
       (fact-base:insert-if-unique! *public-data* (list id :attended u)))
     (fact-base:write! *public-data*)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;; Users
-(defclass user ()
-  ((source :reader source :initform :github :initarg :source)
-   (name :accessor name :initarg :name)
-   (access-token :accessor access-token :initarg :access-token)
-   (url :reader url :initarg :url)))
-
-(defmethod user-id ((u user))
-  (format nil "~(~a~):~a" (source u) (name u)))
-
-(defmethod organizer-of? ((u null) group) nil)
-(defmethod organizer-of? ((u user) thing)
-  (fact-base:for-all
-   `(,(or (getf thing :group) (getf thing :id)) :organizer ,(user-id u))
-   :in *public-data* :do (return t)))
-
-(defmethod register-interest ((u user) event)
-  (fact-base:insert-if-unique!
-   *public-data*
-   (list (getf event :id) :interested (user-id u)))
-  (fact-base:write! *public-data*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Utility
@@ -265,6 +270,7 @@ Intentionally doesn't check for :deleted events. Because:
 ;;    :links '(("wiki" "http://lispwiki.inaimathi.ca/")
 ;; 	    ("group" "https://groups.google.com/forum/?hl=en&fromgroups#!forum/toronto-lisp-users-group")
 ;; 	    ("github" "https://github.com/LispTO")))
+;;   (set-custom-subdomain! (group-by-id 1) "toronto-lisp")
 
 ;;   (create-group!
 ;;    "Comp Sci Cabal"
@@ -275,6 +281,7 @@ Intentionally doesn't check for :deleted events. Because:
 ;;    :links '(("site" "http://cscabal.com")
 ;; 	    ("wiki" "https://github.com/CompSciCabal/SMRTYPRTY/wiki")
 ;; 	    ("github" "https://github.com/CompSciCabal")))
+;;   (set-custom-subdomain! (group-by-id 2) "cscabal")
 
 ;;   (create-event! (group-by-id 0))
 ;;   (create-event! (group-by-id 1))

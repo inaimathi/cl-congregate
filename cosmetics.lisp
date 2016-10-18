@@ -14,8 +14,10 @@
 	   (:div :class "content" ,@contents)
 	   (:div
 	    :class "footer"
-	    (:a :href "/" "Index")
-	    (:a :href "/me" "My Profile"))))))))
+	    (:ul
+	     :class "footer-menu"
+	     (:li (:a :href "/" "Index"))
+	     (:li (:a :href "/me" "My Profile"))))))))))
 
 (defvar css-main-color "#369")
 (defvar white "#fff")
