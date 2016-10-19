@@ -283,6 +283,16 @@ Intentionally doesn't check for :deleted events. Because:
 ;; 	    ("github" "https://github.com/CompSciCabal")))
 ;;   (set-custom-subdomain! (group-by-id 2) "cscabal")
 
+;;   (create-group!
+;;    "Toronto Haskell Users Group"
+;;    "Join us if talking about the internals of GHC, and purely functional data-structures sound like fun things to talk and learn about."
+;;    :organizers (list "github:dxnn" "github:inaimathi")
+;;    :location "Gamma Space"
+;;    :recurring "monthly" :on "the third Wednesday" :at "6:30pm" :to "9:30pm"
+;;    :links '(("google group" "https://groups.google.com/forum/#!forum/toronto-haskell")
+;; 	    ("github" "https://github.com/HaskellTO")))
+;;   (set-custom-subdomain! (group-by-id 3) "toronto-haskell")
+
 ;;   (create-event! (group-by-id 0))
 ;;   (create-event! (group-by-id 1))
 ;;   (create-event! (group-by-id 2)))

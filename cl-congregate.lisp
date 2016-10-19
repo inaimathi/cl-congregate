@@ -16,8 +16,15 @@
 
 ;; TODO - create new group
 
+;; TODO - solve this in a more elegant way (might be in the form of a change in :house)
 (define-redirect-handler (code-retreat :permanent? t)
     (format nil "/group?group=~a" (getf (group-by-host "code-retreat") :id)))
+(define-redirect-handler (toronto-haskell :permanent? t)
+    (format nil "/group?group=~a" (getf (group-by-host "toronto-haskell") :id)))
+(define-redirect-handler (toronto-lisp :permanent? t)
+    (format nil "/group?group=~a" (getf (group-by-host "toronto-lisp") :id)))
+(define-redirect-handler (cscabal :permanent? t)
+    (format nil "/group?group=~a" (getf (group-by-host "cscabal") :id)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Groups
