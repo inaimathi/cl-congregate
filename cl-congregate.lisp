@@ -16,6 +16,9 @@
 
 ;; TODO - create new group
 
+(define-redirect-handler (code-retreat :permanent? t)
+    (format nil "/group?group=~a" (getf (group-by-host "code-retreat") :id)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Groups
 (define-handler (group) ((group :group))
