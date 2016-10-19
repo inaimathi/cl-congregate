@@ -17,7 +17,8 @@
 	    (:ul
 	     :class "menu"
 	     (:li (:a :href "/index" "Index"))
-	     (:li (:a :href "/me" "My Profile"))))))))))
+	     (:li (:a :href "/me" "My Profile"))
+	     (:li (:a :href "https://github.com/inaimathi/cl-congregate/issues/new" "Report an Issue"))))))))))
 
 (defvar css-main-color "#369")
 (defvar white "#fff")
