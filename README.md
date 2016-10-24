@@ -21,7 +21,7 @@ _An open-source event coordination service_
 	- you need to update how the session handles cookies. Specifically, it should be possible to specify domains for sessions, and take said domains as a top-level keyword arg to `start`. That way you could set the same session token for `congregate.ca`, `code-retreat.congregate.ca` and `congregate.inaimathi.ca/code-retreat`.
 - House routing improvements
 	- you need to update how House stores handlers and routes to them. Specifically, copy over the `cl-handlers` machinery for handling path component arguments with type annotations. This would make it possible to make one handler for `/:group::group` (probably safer to do `/g/:group::group` or something just so it's not off of root) instead of separate ones for each individual group
-	- Also, focus on making `cl-handlers` and `house` notation-compatible for the purposes of `define-handler`, that way we could port between them later.
+	- Also, focus on making `cl-handlers` and `house` notation-compatible for the purposes of `define-handler`, HTTP type definitions and annotations, that way we can port between them later.
 - Markdown-friendly description field (this implies no styling on general heading tags; use classes for congregate-structure stuff instead)- Markdown-friendly description field (this implies no styling on general heading tags; use classes for congregate-structure stuff instead)
 - RSS-feed per group
 - iCal feed per group
