@@ -56,6 +56,19 @@
    (list (getf event :id) :interested (user-id u)))
   (fact-base:write! *public-data*))
 
+(defmethod user-details ((u user)) (user-details (user-id u)))
+(defmethod user-details ((user-id string))
+  (flet ((records-by-relation (rec-type relation)
+	   (fact-base:for-all
+	    `(and (?id ,rec-type nil) (?id :name ?name)
+		  (?id ,relation ,user-id))
+	    :in *public-data* :collect (list :id ?id :name ?name))))
+    (list
+     :organizer-of (records-by-relation :group :organizer)
+     :subscribed-to (records-by-relation :group :subscriber)
+     :interested-in (records-by-relation :event :interested)
+     :attended (records-by-relation :event :attended))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;; Groups
 (defun list-groups ()
