@@ -16,4 +16,5 @@
 	       (:file "recurrence")
 	       (:file "model")
 	       (:file "cosmetics")
+	       (:file "authentication")
                (:file "cl-congregate")))

@@ -86,15 +86,14 @@
       (:li (:label "To:") (:input :type "text" :name "to" :value (getf group :to))))
      (:input :type "submit" :value "Create"))))
 
-(define-handler (group/create-event) ((group :group) (name :string) (location :string) (date :string) (at :integer) (to :integer))
-  (cond ((organizer-of? (lookup :user session) group)
-	 (let ((event-id (create-event! group :name name :location location :date date)))
-	   (redirect! (format nil "/event?event=~a" event-id))))
-	(t
-	 (setf (lookup :destination session)
-	       (format
-		nil "/group/create-event?group=~a&name=~a&location=~a&date=~a&at=~a&to=~a"
-		(getf group :id) name location date at to)))))
+(define-handler (group/create-event) ((group :group) (name :string) (location :string) (date :date) (at :integer) (to :integer))
+  (organizers-only
+      group (format nil "/group/create-event?group=~a&name=~a&location=~a&date=~a&at=~a&to=~a"
+		    (getf group :id) name location date at to)
+    (let ((event-id (create-event!
+		     group :name name :location location
+		     :date (local-time:format-timestring nil date))))
+      (redirect! (format nil "/event?event=~a" event-id)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Events
@@ -121,73 +120,44 @@
 ;; TODO - events should allow editing in-line for group administrators
 
 (define-handler (event/delete) ((event :event))
-  (cond ((organizer-of? (lookup :user session) event)
-	 (delete-event! (getf event :id) (lookup :user session))
-	 (redirect! (format nil "/group?group=~a" (getf event :group))))
-	(t
-	 (setf (lookup :destination session)
-	       (format nil "/event/delete?event=~a" (getf event :id)))
-	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
+  (organizers-only event (format nil "/event/delete?event=~a" (getf event :id))
+    (delete-event! (getf event :id) (lookup :user session))
+    (redirect! (format nil "/group?group=~a" (getf event :group)))))
 
 (define-handler (event/take-attendance) ((event :event) (attendees :list-of-string))
-  (cond ((organizer-of? (lookup :user session) event)
-	 (take-attendance attendees event)
-	 (redirect! (format nil "/event?event=~a" (getf event :id))))
-	(t
-	 (setf (lookup :destination session)
-	       (format nil "/event/interested?event=~a" (getf event :id)))
-	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
+  (organizers-only event (format nil "/event/interested?event=~a" (getf event :id))
+    (take-attendance attendees event)
+    (redirect! (format nil "/event?event=~a" (getf event :id)))))
 
 (define-handler (event/interested) ((event :event))
-  (cond ((lookup :user session)
-	 (register-interest (lookup :user session) event)
-	 (redirect! (format nil "/event?event=~a" (getf event :id))))
-	(t
-	 (setf (lookup :destination session)
-	       (format nil "/event/interested?event=~a" (getf event :id)))
-	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
+  (logged-in-only (format nil "/event/interested?event=~a" (getf event :id))
+    (register-interest (lookup :user session) event)
+    (redirect! (format nil "/event?event=~a" (getf event :id)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; User
 (define-handler (me) ()
-  (cond ((lookup :user session)
-	 (page (:title "My Profile")
-	   (:h2 "Nothing here yet...")))
-	(t
-	 (setf (lookup :destination session) "/me")
-	 (redirect! "https://github.com/login/oauth/authorize?client_id=50798a26a6cdfa15a5b8"))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Authentication
-(define-handler (auth/github/callback :content-type "text/plain") ((code :string))
-  (let* ((raw (drakma:http-request
-	       "https://github.com/login/oauth/access_token"
-	       :method :post
-	       :parameters (list
-			    (cons "client_id" +github-api-id+)
-			    (cons "client_secret" +github-api-secret+)
-			    (cons "code" code))))
-	 (params (house::parse-params (map 'string #'code-char raw))))
-    (aif (cdr (assoc :access_token params))
-	 (let* ((raw (drakma:http-request
-		      "https://api.github.com/user"
-		      :parameters (list (cons "access_token" it))))
-		(u (yason:parse (map 'string #'code-char raw) :object-key-fn #'house::->keyword)))
-	   (setf (lookup :user session)
-		 (make-instance
-		  'user
-		  :source :github :access-token it
-		  :name (gethash :login u) :url (gethash :html_url u)))
-	   (let ((dest (lookup :destination session)))
-	     (setf (lookup :destination session) nil)
-	     (redirect! (or dest "/"))))
-	 "AUTHENTICATION ERROR")))
+  (logged-in-only "/me"
+    (labels ((link-ul (title link-type list)
+	       (with-html-output (s *standard-output*)
+		 (:h2 title)
+		 (:ul
+		  (loop for id/name-plist in list
+		     do (htm
+			 (:li
+			  (:a :href (format nil "/~(~a~)?~(~a~)=~a"
+					    link-type link-type (getf id/name-plist :id))
+			      (str (getf id/name-plist :name))))))))))
+      (let ((deets (user-details (lookup :user session))))
+	(page (:title "My Profile")
+	  (link-ul "You organize..." :group (getf deets :organizer-of)))))))
 
 (defparameter *threads* nil)
 
 (defun start! (port &key (host usocket:*wildcard-host*))
   (let ((s *standard-output*))
     (setf
+     *http-port* port
      *threads*
      (list
       (bt:make-thread
