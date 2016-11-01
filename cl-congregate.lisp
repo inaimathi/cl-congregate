@@ -140,19 +140,21 @@
   (logged-in-only "/me"
     (labels ((link-ul (title link-type list)
 	       (with-html-output (s *standard-output*)
-		 (:h2 title)
-		 (:ul
-		  (loop for id/name-plist in list
-		     do (htm
-			 (:li
-			  (:a :href (format nil "/~(~a~)?~(~a~)=~a"
-					    link-type link-type (getf id/name-plist :id))
-			      (str (getf id/name-plist :name))))))))))
+		 (when list
+		   (htm
+		    (:h2 (str title))
+		    (:ul
+		     (loop for id/name-plist in list
+			do (htm
+			    (:li
+			     (:a :href (format nil "/~(~a~)?~(~a~)=~a"
+					       link-type link-type (getf id/name-plist :id))
+				 (str (getf id/name-plist :name))))))))))))
       (let ((deets (user-details (lookup :user session))))
 	(page (:title "My Profile")
-	  (link-ul "You organize..." :group (getf deets :organizer-of)))))))
-
-(defparameter *threads* nil)
+	  (link-ul "You organize..." :group (getf deets :organizer-of))
+	  (link-ul "You subscribe to..." :group (getf deets :subscribed-to))
+	  (link-ul "You've been to..." :event (getf deets :attended)))))))
 
 (defun start! (port &key (host usocket:*wildcard-host*))
   (let ((s *standard-output*))

@@ -10,6 +10,7 @@
 (in-package :cl-congregate)
 
 (defparameter *dev-mode* nil)
+(defparameter *threads* nil)
 (defparameter *http-port* nil)
 
 (define-http-type (:group)
