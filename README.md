@@ -15,7 +15,6 @@ _An open-source event coordination service_
 
 ## TODO
 
-- ensure timing issues with `update-state!` are fixed (standardized on serialized, TZ-ed timestamps. Check that it actually does what you think. This may in fact be the wrong choice, since all the dates/times we track will be in whatever the local timezone of the meetup is. Think about it a bit more)
 - Attendance model and interface
 - House session improvements and real subdomain handling
 	- you need to update how the session handles cookies. Specifically, it should be possible to specify domains for sessions, and take said domains as a top-level keyword arg to `start`. That way you could set the same session token for `congregate.ca`, `code-retreat.congregate.ca` and `congregate.inaimathi.ca/code-retreat`.
